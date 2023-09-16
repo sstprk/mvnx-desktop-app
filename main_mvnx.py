@@ -3,7 +3,7 @@ import argparse
 import matplotlib.pyplot as plt
 from load_mvnx import load_mvnx
 
-
+print("merba")
 # Convert mvnx file to python data
 def main(file_name):
     # Check for file existence
