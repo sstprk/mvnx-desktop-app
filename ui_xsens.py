@@ -1,84 +1,66 @@
 #Salih Toprak
 import tkinter as tk
 import customtkinter as ctk
+from tkinter.filedialog import askopenfilename
+from tkinter.messagebox import showerror
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from load_mvnx import load_mvnx
 from mpl_toolkits.mplot3d import Axes3D
-from tkinter.filedialog import askopenfilename
-import xlsxwriter
-from tkinter.messagebox import showerror
 import matplotlib.animation as animation
-from scipy.io import loadmat
-import scipy.signal
+
+from load_mvnx import load_mvnx
+
 import pandas as pd
 
-class tools:
-    file_path = []
-    file_path_emg = []
+import xlsxwriter
+
+from scipy.io import loadmat
+import scipy.signal 
+
+class body:
+    file_path_mvnx = []
+    file_path_mat = []
     selection_idx = None
     picked_joint = ""
     picked_move = ""
 
     joints = [
-        "Hips",
-        "Knees",
-        "Ankles",
-        "Ball Foots",
-        "C1-Head",
-        "T1-C7",
-        "T9-T8",
-        "L1-T12",
-        "L4-L3",
-        "L5-S1",
-        "T4 Shoulders",
-        "Shoulders",
-        "Elbow",
-        "Wrists"
-    ]
-
+            "Hips",
+            "Knees",
+            "Ankles",
+            "Ball Foots",
+            "C1-Head",
+            "T1-C7",
+            "T9-T8",
+            "L1-T12",
+            "L4-L3",
+            "L5-S1",
+            "T4 Shoulders",
+            "Shoulders",
+            "Elbow",
+            "Wrists"]
+        
     move = [
-        "Flexion/Extension",
-        "Abduction/Adduction",
-        "Internal/External"
-    ]
+            "Flexion/Extension",
+            "Abduction/Adduction",
+            "Internal/External"]
 
-    #File browser command func
-    def browseFunc():
-        tools.file_path.clear()
-        entry.delete(0, tk.END)
-        filename = askopenfilename(filetypes=(("MVNX File", "*.mvnx"),("All Files", "*.*")))
-        entry.insert(tk.END, filename)
-        tools.file_path.append(str(filename))
-
-    #File browser 2 command func
-    def browseFunc2():
-        tools.file_path_emg.clear()
-        entryEMG.delete(0, tk.END)
-        filename = askopenfilename(filetypes=(("MAT File", "*.mat"), ("All Files", "*.*")))
-        entryEMG.insert(tk.END, filename)
-        tools.file_path_emg.append(str(filename))
-
-    #Animation func
-    def anim():
-        if tools.file_path == []:
+    @classmethod
+    def anim(cls):
+        if cls.file_path_mvnx == []:
             errorMBox = showerror("Warning", "Select a file")
             pass
         else:
-            #Loading mvnx file
-            #load_mvnx("file_path")  
-            data = load_mvnx(file_name= tools.file_path[0])
-
-            #Reading data from the mvnx file
+            data = load_mvnx(file_name=cls.file_path_mvnx[0])
             frame_count = data.frame_count
-            frame_rate = data.frame_rate
-            segment_name = []
             segment_pos = []
+            
+            figr = []
 
             for i in range(23):
-                segment_name.append(data.segment_name_from_index(i))
                 segment_pos.append(data.get_segment_pos(i))
-                
+
             body_x = []
             body_y = []
             body_z = []
@@ -106,6 +88,8 @@ class tools:
                 #Organised data for plotting
                 figr.append([body_x[a], body_y[a], body_z[a]])
 
+                
+
             #Ploting the figure
             fig = plt.figure(figsize=(6.2,4.2))
             ax = fig.add_subplot(111, projection="3d")
@@ -123,27 +107,45 @@ class tools:
 
             line, = ax.plot(figr[0][0], figr[0][1], figr[0][2], lw=2, color="black", marker="H", ms=3, mfc="red")
             ax.view_init(elev=10, azim=-120, roll=0)
-            tools.ani = animation.FuncAnimation(fig, func, frame_count, fargs=(figr, line), interval=30, blit=False)  
+            ani = animation.FuncAnimation(fig, func, frame_count, fargs=(figr, line), interval=30, blit=False)  
             plt.show()
-    
-    #Joint dropdown command
-    def menuJoint(selection):
+
+    @classmethod
+    def browseFunc(cls):
+        cls.file_path_mvnx.clear()
+        entry.delete(0, tk.END)
+        filename = askopenfilename(filetypes=(("MVNX File", "*.mvnx"),("All Files", "*.*")))
+        entry.insert(tk.END, filename)
+        cls.file_path_mvnx.append(str(filename))
+
+    @classmethod
+    def browseFunc2(cls):
+        cls.file_path_mat.clear()
+        entryEMG.delete(0, tk.END)
+        filename = askopenfilename(filetypes=(("MAT File", "*.mat"), ("All Files", "*.*")))
+        entryEMG.insert(tk.END, filename)
+        cls.file_path_mat.append(str(filename))
+
+    @classmethod
+    def menuJoint(cls, selection):
         selection = jointDropdown.get()
-        tools.picked_joint = selection
-        for i in range(len(tools.joints)):
-            if tools.joints[i] == selection:
-                tools.selection_idx = i
-
-    #Movement dropdown command
-    def menuMove(selection):
+        cls.picked_joint = selection
+        for i in range(len(cls.joints)):
+            if cls.joints[i] == selection:
+                cls.selection_idx = i
+    
+    @classmethod
+    def menuMove(cls, selection):
         selection = moveDropdown.get()
-        tools.picked_move = selection
+        cls.picked_move = selection
 
-    #Gait analysis func
-    def gait():
-        #A class for lists
-        class lists:
-            
+    @classmethod
+    def gait(cls):
+        if cls.file_path_mvnx == []:
+            errorMBox = showerror("Warning", "Select a file")
+            pass
+
+        else:
             left_heel_strikes = []
             right_heel_strikes = []
             right_joint = []
@@ -161,177 +163,171 @@ class tools:
                 for i in range(frame_count):
                     rList.append(data.get_joint_angle(RjointIndex)[i])
                     lList.append(data.get_joint_angle(LjointIndex)[i])
-            
+                    
             #Seperating each axis of cycles with a function
             def organise_joint(rList, lList):
-                    j = 1
-                    for j in range(len(lists.left_heel_strikes)):
-                        ltempListx = []
-                        ltempListy = []
-                        ltempListz = []
+                j = 1
+                for j in range(len(left_heel_strikes)):
+                    ltempListx = []
+                    ltempListy = []
+                    ltempListz = []
 
-                        if lists.left_heel_strikes[j] == 0:
-                            continue
-                        if len(range(lists.left_heel_strikes[j-1], lists.left_heel_strikes[j])) < 10:
-                            continue
-                        for x in range(lists.left_heel_strikes[j-1], lists.left_heel_strikes[j]):
-                            ltempListx.append(lList[x][0])
-                            ltempListy.append(lList[x][1])
-                            ltempListz.append(lList[x][2])
-                        lists.xleft_gait_cycles.append(ltempListx)
-                        lists.yleft_gait_cycles.append(ltempListy)
-                        lists.zleft_gait_cycles.append(ltempListz)
+                    if left_heel_strikes[j] == 0:
+                        continue
+                    if len(range(left_heel_strikes[j-1], left_heel_strikes[j])) < 10:
+                        continue
+                    for x in range(left_heel_strikes[j-1], left_heel_strikes[j]):
+                        ltempListx.append(lList[x][0])
+                        ltempListy.append(lList[x][1])
+                        ltempListz.append(lList[x][2])
+                    xleft_gait_cycles.append(ltempListx)
+                    yleft_gait_cycles.append(ltempListy)
+                    zleft_gait_cycles.append(ltempListz)
 
-                    k = 1
-                    for k in range(len(lists.right_heel_strikes)):
-                        rtempListx = []
-                        rtempListy = []
-                        rtempListz = []
+                k = 1
+                for k in range(len(right_heel_strikes)):
+                    rtempListx = []
+                    rtempListy = []
+                    rtempListz = []
 
-                        if lists.right_heel_strikes[k] == 0:
-                            continue
-                        if len(range(lists.right_heel_strikes[k-1], lists.right_heel_strikes[k])) < 10:
-                            continue
-                        for y in range(lists.right_heel_strikes[k-1], lists.right_heel_strikes[k]):
-                            rtempListx.append(rList[y][0])
-                            rtempListy.append(rList[y][1])
-                            rtempListz.append(rList[y][2])
-                        lists.xright_gait_cycles.append(rtempListx)
-                        lists.yright_gait_cycles.append(rtempListy)
-                        lists.zright_gait_cycles.append(rtempListz)
-        
-
-        if tools.file_path == []:
-            errorMBox = showerror("Warning", "Select a file")
-            pass
-        else:
-            if tools.picked_joint != "" and tools.picked_move != "":
-
-                data = load_mvnx(file_name= tools.file_path[0])
+                    if right_heel_strikes[k] == 0:
+                        continue
+                    if len(range(right_heel_strikes[k-1], right_heel_strikes[k])) < 10:
+                        continue
+                    for y in range(right_heel_strikes[k-1], right_heel_strikes[k]):
+                        rtempListx.append(rList[y][0])
+                        rtempListy.append(rList[y][1])
+                        rtempListz.append(rList[y][2])
+                    xright_gait_cycles.append(rtempListx)
+                    yright_gait_cycles.append(rtempListy)
+                    zright_gait_cycles.append(rtempListz)
+                
+            if cls.picked_joint == "" and cls.picked_move == "":
+                errorMBox = showerror("Warning", "Select joint and move")
+                pass
+            else:
+                data = load_mvnx(file_name= cls.file_path_mvnx[0])
                 frame_count = data.frame_count
                 temp = []
 
                 for idx in range(frame_count):
                     temp.append(data.get_foot_contacts(frame=idx))
-                    lists.foot_contacts.append(temp[idx][0])
+                    foot_contacts.append(temp[idx][0])
 
                 #Determinating the heel strikes for each foot
                 i = 1
                 for i in range(frame_count):
-                    if lists.foot_contacts[i-1][1] - lists.foot_contacts[i][1] == -1:
-                        lists.left_heel_strikes.append(i)
+                    if foot_contacts[i-1][1] - foot_contacts[i][1] == -1:
+                        left_heel_strikes.append(i)
 
                 ix = 1
                 for ix in range(frame_count):
-                    if lists.foot_contacts[ix-1][3] - lists.foot_contacts[ix][3] == -1:
-                        lists.right_heel_strikes.append(ix)
+                    if foot_contacts[ix-1][3] - foot_contacts[ix][3] == -1:
+                        right_heel_strikes.append(ix)
 
-                if tools.selection_idx == 0:#Hips
-                    lists.get_joint1(14, 18, lists.right_joint, lists.left_joint)
-                
-                elif tools.selection_idx == 1:#Knees
-                    lists.get_joint1(15, 19, lists.right_joint, lists.left_joint)
+                if cls.selection_idx == 0:#Hips
+                    get_joint1(14, 18, right_joint, left_joint)
+                        
+                elif cls.selection_idx == 1:#Knees
+                    get_joint1(15, 19, right_joint, left_joint)
 
-                elif tools.selection_idx == 2:#Ankles
-                    lists.get_joint1(16, 20, lists.right_joint, lists.left_joint)
+                elif cls.selection_idx == 2:#Ankles
+                    get_joint1(16, 20, right_joint, left_joint)
 
-                elif tools.selection_idx == 3:#Ball Foots
-                    lists.get_joint1(17, 21, lists.right_joint, lists.left_joint)
+                elif cls.selection_idx == 3:#Ball Foots
+                    get_joint1(17, 21, right_joint, left_joint)
 
-                elif tools.selection_idx == 4:#C1-Head
-                    lists.get_joint1(5, 5, lists.right_joint, lists.left_joint)
+                elif cls.selection_idx == 4:#C1-Head
+                    get_joint1(5, 5, right_joint, left_joint)
 
-                elif tools.selection_idx == 5:#T1-C7
-                    lists.get_joint1(4, 4, lists.right_joint, lists.left_joint)
-                
-                elif tools.selection_idx == 6:#T9-T8
-                    lists.get_joint1(3, 3, lists.right_joint, lists.left_joint)
+                elif cls.selection_idx == 5:#T1-C7
+                    get_joint1(4, 4, right_joint, left_joint)
+                        
+                elif cls.selection_idx == 6:#T9-T8
+                    get_joint1(3, 3, right_joint, left_joint)
 
-                elif tools.selection_idx == 7:#L1-T12
-                    lists.get_joint1(2, 2, lists.right_joint, lists.left_joint)
+                elif cls.selection_idx == 7:#L1-T12
+                    get_joint1(2, 2, right_joint, left_joint)
 
-                elif tools.selection_idx == 8:#L4-L3
-                    lists.get_joint1(1, 1, lists.right_joint, lists.left_joint)
+                elif cls.selection_idx == 8:#L4-L3
+                    get_joint1(1, 1, right_joint, left_joint)
 
-                elif tools.selection_idx == 9:#L5-S1
-                    lists.get_joint1(0, 0, lists.right_joint, lists.left_joint)
+                elif cls.selection_idx == 9:#L5-S1
+                    get_joint1(0, 0, right_joint, left_joint)
 
-                elif tools.selection_idx == 10:#T4 Shoulder
-                    lists.get_joint1(6, 10, lists.right_joint, lists.left_joint)
+                elif cls.selection_idx == 10:#T4 Shoulder
+                    get_joint1(6, 10, right_joint, left_joint)
 
-                elif tools.selection_idx == 11:#Shoulder
-                    lists.get_joint1(7, 11, lists.right_joint, lists.left_joint)
-            
-                elif tools.selection_idx == 12:#Elbow
-                    lists.get_joint1(8, 12, lists.right_joint, lists.left_joint)
+                elif cls.selection_idx == 11:#Shoulder
+                    get_joint1(7, 11, right_joint, left_joint)
+                    
+                elif cls.selection_idx == 12:#Elbow
+                    get_joint1(8, 12, right_joint, left_joint)
 
-                elif tools.selection_idx == 13:#Wrist
-                    lists.get_joint1(9, 13, lists.right_joint, lists.left_joint)
+                elif cls.selection_idx == 13:#Wrist
+                    get_joint1(9, 13, right_joint, left_joint)
 
-                lists.organise_joint(lists.right_joint, lists.left_joint)
+                organise_joint(right_joint, left_joint)
 
                 #Plotting the final data 
                 #[x,y,z] == [internal, abduct, flexion]  
                 fig = plt.figure(figsize=(8.8,3))
                 mngr = plt.get_current_fig_manager()
                 mngr.window.geometry("+0+15")
-                if tools.picked_move == "Internal/External":
-                    for i in range(len(lists.xleft_gait_cycles)):
+                if cls.picked_move == "Internal/External":
+                    for i in range(len(xleft_gait_cycles)):
                         plt.subplot(1, 2, 1) 
                         plt.title("Left")
-                        plt.plot(lists.xleft_gait_cycles[i], lw=0.5)
+                        plt.plot(xleft_gait_cycles[i], lw=0.5)
 
-                    for i in range(len(lists.xright_gait_cycles)):
+                    for i in range(len(xright_gait_cycles)):
                         plt.subplot(1, 2, 2)
                         plt.title("Right")
-                        plt.plot(lists.xright_gait_cycles[i], lw=0.5)
+                        plt.plot(xright_gait_cycles[i], lw=0.5)
 
-                if tools.picked_move == "Abduction/Adduction":
-                    for i in range(len(lists.yleft_gait_cycles)):
+                if cls.picked_move == "Abduction/Adduction":
+                    for i in range(len(yleft_gait_cycles)):
                         plt.subplot(1, 2, 1)
                         plt.title("Left")
-                        plt.plot(lists.yleft_gait_cycles[i], lw=0.5)
+                        plt.plot(yleft_gait_cycles[i], lw=0.5)
 
-                    for i in range(len(lists.yright_gait_cycles)):
+                    for i in range(len(yright_gait_cycles)):
                         plt.subplot(1, 2, 2)
                         plt.title("Right")
-                        plt.plot(lists.yright_gait_cycles[i], lw=0.5)
+                        plt.plot(yright_gait_cycles[i], lw=0.5)
 
-                if tools.picked_move == "Flexion/Extension":
-                    for i in range(len(lists.zleft_gait_cycles)):
+                if cls.picked_move == "Flexion/Extension":
+                    for i in range(len(zleft_gait_cycles)):
                         plt.subplot(1, 2, 1) 
                         plt.title("Left")
-                        plt.plot(lists.zleft_gait_cycles[i], lw=0.5)
+                        plt.plot(zleft_gait_cycles[i], lw=0.5)
 
-                    for i in range(len(lists.zright_gait_cycles)):
+                    for i in range(len(zright_gait_cycles)):
                         plt.subplot(1, 2, 2)
                         plt.title("Right")
-                        plt.plot(lists.zright_gait_cycles[i], lw=0.5)
+                        plt.plot(zright_gait_cycles[i], lw=0.5)
 
-                plt.suptitle(tools.picked_joint+" "+tools.picked_move)
+                plt.suptitle(cls.picked_joint+" "+cls.picked_move)
                 plt.show()
 
-            else:
-                errorMBox = showerror("Warning", "Select joint and movement")
-                pass
-
     #Func for saving cycles as an excel file
-    def writeExcel():
-        if tools.file_path != [] and tools.picked_joint != "":
-            class vars:
-                frame_count = None
-                f_contacts = []
-                heel_left = []
-                heel_right = []
-                right_joint = []
-                left_joint = []
-                xRgait = []
-                yRgait = []
-                zRgait = []
-                xLgait = []
-                yLgait = []
-                zLgait = []
-            data = load_mvnx(file_name= tools.file_path[0])
+    @classmethod
+    def writeExcel(cls):
+        if cls.file_path_mvnx != [] and cls.picked_joint != "":
+            frame_count = None
+            f_contacts = []
+            heel_left = []
+            heel_right = []
+            right_joint = []
+            left_joint = []
+            xRgait = []
+            yRgait = []
+            zRgait = []
+            xLgait = []
+            yLgait = []
+            zLgait = []
+
+            data = load_mvnx(file_name= cls.file_path[0])
 
             def organise_joint1(jointData1, jointData2, lHeel, rHeel, xRgait, yRgait, zRgait, xLgait, yLgait, zLgait):
                 j = 1
@@ -363,82 +359,82 @@ class tools:
                     if len(range(rHeel[k-1], rHeel[k]))<10:
                         continue
                     for y in range(rHeel[k-1], rHeel[k]):
-                        rtempListx.append(jointData1[y][0])
-                        rtempListy.append(jointData1[y][1])
-                        rtempListz.append(jointData1[y][2])
+                        rtempListx.append(jointData2[y][0])
+                        rtempListy.append(jointData2[y][1])
+                        rtempListz.append(jointData2[y][2])
                     xRgait.append(rtempListx)
                     yRgait.append(rtempListy)
                     zRgait.append(rtempListz)
             
             def get_joint1(jointIndex1, jointIndex2, rList, lList):
-                for i in range(vars.frame_count):
+                for i in range(frame_count):
                     rList.append(data.get_joint_angle(jointIndex1)[i])
                     lList.append(data.get_joint_angle(jointIndex2)[i])
 
-            vars.frame_count = data.frame_count
+            frame_count = data.frame_count
             temp = []
 
-            for idx in range(vars.frame_count):
+            for idx in range(frame_count):
                 temp.append(data.get_foot_contacts(frame=idx))
-                vars.f_contacts.append(temp[idx][0])
+                f_contacts.append(temp[idx][0])
 
             #Determinating the heel strikes for each foot
             i = 1
-            for i in range(vars.frame_count):
-                if vars.f_contacts[i-1][1] - vars.f_contacts[i][1] == -1:
-                    vars.heel_left.append(i)
+            for i in range(frame_count):
+                if f_contacts[i-1][1] - f_contacts[i][1] == -1:
+                    heel_left.append(i)
 
             ix = 1
-            for ix in range(vars.frame_count):
-                if vars.f_contacts[ix-1][3] - vars.f_contacts[ix][3] == -1:
-                    vars.heel_right.append(ix)
+            for ix in range(frame_count):
+                if f_contacts[ix-1][3] - f_contacts[ix][3] == -1:
+                    heel_right.append(ix)
 
-            if tools.selection_idx == 0:#Hips
-                get_joint1(14, 18, vars.right_joint ,vars.left_joint )
+            if cls.selection_idx == 0:#Hips
+                get_joint1(14, 18, right_joint ,left_joint )
+                    
+            elif cls.selection_idx == 1:#Knees
+                get_joint1(15, 19, right_joint, left_joint)
+
+            elif cls.selection_idx == 2:#Ankles
+                get_joint1(16, 20, right_joint, left_joint)
+
+            elif cls.selection_idx == 3:#Ball Foots
+                get_joint1(17, 21, right_joint, left_joint)
+
+            elif cls.selection_idx == 4:#C1-Head
+                get_joint1(5, 5, right_joint, left_joint)
+
+            elif cls.selection_idx == 5:#T1-C7
+                get_joint1(4, 4, right_joint, left_joint)
+                    
+            elif cls.selection_idx == 6:#T9-T8
+                get_joint1(3, 3, right_joint, left_joint)
+
+            elif cls.selection_idx == 7:#L1-T12
+                get_joint1(2, 2, right_joint, left_joint)
+
+            elif cls.selection_idx == 8:#L4-L3
+                get_joint1(1, 1, right_joint, left_joint)
+
+            elif cls.selection_idx == 9:#L5-S1
+                get_joint1(0, 0, right_joint, left_joint)
+
+            elif cls.selection_idx == 10:#T4 Shoulder
+                get_joint1(6, 10, right_joint, left_joint)
+
+            elif cls.selection_idx == 11:#Shoulder
+                get_joint1(7, 11, right_joint, left_joint)
                 
-            elif tools.selection_idx == 1:#Knees
-                get_joint1(15, 19, vars.right_joint, vars.left_joint)
+            elif cls.selection_idx == 12:#Elbow
+                get_joint1(8, 12, right_joint, left_joint)
 
-            elif tools.selection_idx == 2:#Ankles
-                get_joint1(16, 20, vars.right_joint, vars.left_joint)
+            elif cls.selection_idx == 13:#Wrist
+                get_joint1(9, 13, right_joint, left_joint)
 
-            elif tools.selection_idx == 3:#Ball Foots
-                get_joint1(17, 21, vars.right_joint, vars.left_joint)
 
-            elif tools.selection_idx == 4:#C1-Head
-                get_joint1(5, 5, vars.right_joint, vars.left_joint)
-
-            elif tools.selection_idx == 5:#T1-C7
-                get_joint1(4, 4, vars.right_joint, vars.left_joint)
-                
-            elif tools.selection_idx == 6:#T9-T8
-                get_joint1(3, 3, vars.right_joint, vars.left_joint)
-
-            elif tools.selection_idx == 7:#L1-T12
-                get_joint1(2, 2, vars.right_joint, vars.left_joint)
-
-            elif tools.selection_idx == 8:#L4-L3
-                get_joint1(1, 1, vars.right_joint, vars.left_joint)
-
-            elif tools.selection_idx == 9:#L5-S1
-                get_joint1(0, 0, vars.right_joint, vars.left_joint)
-
-            elif tools.selection_idx == 10:#T4 Shoulder
-                get_joint1(6, 10, vars.right_joint, vars.left_joint)
-
-            elif tools.selection_idx == 11:#Shoulder
-                get_joint1(7, 11, vars.right_joint, vars.left_joint)
+            organise_joint1(right_joint, left_joint, heel_left, heel_right, xRgait, yRgait, zRgait, xLgait, yLgait, zLgait)
             
-            elif tools.selection_idx == 12:#Elbow
-                get_joint1(8, 12, vars.right_joint, vars.left_joint)
-
-            elif tools.selection_idx == 13:#Wrist
-                get_joint1(9, 13, vars.right_joint, vars.left_joint)
-
-
-            organise_joint1(vars.right_joint, vars.left_joint, vars.heel_left, vars.heel_right, vars.xRgait, vars.yRgait, vars.zRgait, vars.xLgait, vars.yLgait, vars.zLgait)
-        
-            workbook = xlsxwriter.Workbook(tools.picked_joint+".xlsx")
+            workbook = xlsxwriter.Workbook(cls.picked_joint+".xlsx")
             worksheetFlexL = workbook.add_worksheet("Flexion-Extension Left")
             worksheetFlexR = workbook.add_worksheet("Flexion-Extension Right")
             worksheetAbductL = workbook.add_worksheet("Abduction-Adduction Left")
@@ -452,12 +448,12 @@ class tools:
                     for b in range(len(entry[a])):
                         sheet.write(b, a, entry[a][b])
 
-            writeSheet(worksheetRotateL, vars.xLgait)
-            writeSheet(worksheetRotateR, vars.xRgait)
-            writeSheet(worksheetAbductL, vars.yLgait)
-            writeSheet(worksheetAbductR, vars.yRgait)
-            writeSheet(worksheetFlexL, vars.zLgait)
-            writeSheet(worksheetFlexR, vars.zRgait)
+            writeSheet(worksheetRotateL, xLgait)
+            writeSheet(worksheetRotateR, xRgait)
+            writeSheet(worksheetAbductL, yLgait)
+            writeSheet(worksheetAbductR, yRgait)
+            writeSheet(worksheetFlexL, zLgait)
+            writeSheet(worksheetFlexR, zRgait)
 
             workbook.close()
         else:
@@ -465,13 +461,14 @@ class tools:
             pass
 
     #EMG func
-    def emg():
+    @classmethod 
+    def emg(cls):
         #Checking if user selected a file. If not error pop-up
-        if tools.file_path_emg == [] or tools.file_path == []:
+        if cls.file_path_mat == [] or cls.file_path_mvnx == []:
             showerror("Warning", "Select files")
         else:
             #Importing .mat file
-            data = loadmat(file_name=tools.file_path_emg[0])
+            data = loadmat(file_name=cls.file_path_emg[0])
             dd = data.get("Data")
             channels = data.get("Channels")
             df = scipy.signal.detrend(dd)
@@ -487,7 +484,7 @@ class tools:
             right_cycles = []
 
             #Importing the walking data
-            data = load_mvnx(tools.file_path[0])
+            data = load_mvnx(cls.file_path[0])
             frame_count = data.frame_count
             temp = []
 
@@ -598,13 +595,14 @@ class tools:
                     index+=1
                     continue
             plt.show()
+    
+bodyC = body()
 
 ctk.set_appearance_mode("System")
-ctk.set_default_color_theme(r"C:\Users\Salih\Desktop\Scripts\VS\mvnx-desktop-app-main\Themes\MoonlitSky.json")
+ctk.set_default_color_theme(r"C:\Users\Salih\OneDrive\Desktop\Scripts\VS\mvnx-desktop-app-main\Themes\MoonlitSky.json")
 ctk.set_window_scaling(1.2)
 ctk.set_widget_scaling(1)
 
-#Root of the interface
 form = ctk.CTk(screenName="MVNX-UI")
 form.title("MVNX-UI")
 form.geometry("500x300+650+520")
@@ -638,34 +636,34 @@ entry.place(x=15, y=35)
 entry.pack
 
 #Browse button
-buttonBrowse = ctk.CTkButton(form, text="Browse", command=tools.browseFunc, font=font1)
+buttonBrowse = ctk.CTkButton(form, text="Browse", command=bodyC.browseFunc, font=font1)
 buttonBrowse.place(x=445, y=35)
 buttonBrowse.pack
 
 #Play button
-buttonPlay = ctk.CTkButton(form, text="Play", command=tools.anim, font=font1)
+buttonPlay = ctk.CTkButton(form, text="Play", command=bodyC.anim, font=font1)
 buttonPlay.place(x=445, y=260)
 buttonPlay.pack
 
 #Gait button
-buttonGait = ctk.CTkButton(form, text="Gait", command=tools.gait, font=font1)
+buttonGait = ctk.CTkButton(form, text="Gait", command=bodyC.gait, font=font1)
 buttonGait.place(x=445, y=90)
 buttonGait.pack
 
 #Joint dropdown
-jointDropdown = ctk.CTkOptionMenu(form, values=tools.joints, command=tools.menuJoint, width=180, font=font1)
+jointDropdown = ctk.CTkOptionMenu(form, values=bodyC.joints, command=bodyC.menuJoint, width=180, font=font1)
 jointDropdown.place(x=15, y=90)
 jointDropdown.set("")
 jointDropdown.pack
 
 #Movement dropdown
-moveDropdown = ctk.CTkOptionMenu(form, values=tools.move, command=tools.menuMove, width=180, font=font1)
+moveDropdown = ctk.CTkOptionMenu(form, values=bodyC.move, command=bodyC.menuMove, width=180, font=font1)
 moveDropdown.place(x=215, y=90)
 moveDropdown.set("")
 moveDropdown.pack
 
 #Excel save button
-buttonExcel = ctk.CTkButton(form, text="Save Cycles", command=tools.writeExcel, font=font1)
+buttonExcel = ctk.CTkButton(form, text="Save Cycles", command=bodyC.writeExcel, font=font1)
 buttonExcel.place(x=290, y=260)
 buttonExcel.pack
 
@@ -675,12 +673,12 @@ entryEMG.place(x=15, y=150)
 entryEMG.pack
 
 #Browse button for EMG data
-buttonBrowseEmg = ctk.CTkButton(form, text="Browse", command=tools.browseFunc2, width=100, font=font1)
+buttonBrowseEmg = ctk.CTkButton(form, text="Browse", command=bodyC.browseFunc2, width=100, font=font1)
 buttonBrowseEmg.place(x=425, y=150)
 buttonBrowseEmg.pack
 
 #EMG plot button
-buttonEMG = ctk.CTkButton(form, text="EMG", command=tools.emg, width=50, font=font1)
+buttonEMG = ctk.CTkButton(form, text="EMG", command=body.emg, width=50, font=font1)
 buttonEMG.place(x=535, y=150)
 buttonEMG.pack
 
