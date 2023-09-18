@@ -468,7 +468,7 @@ class body:
             showerror("Warning", "Select files")
         else:
             #Importing .mat file
-            data = loadmat(file_name=cls.file_path_emg[0])
+            data = loadmat(file_name=cls.file_path_mat[0])
             dd = data.get("Data")
             channels = data.get("Channels")
             df = scipy.signal.detrend(dd)
@@ -484,7 +484,7 @@ class body:
             right_cycles = []
 
             #Importing the walking data
-            data = load_mvnx(cls.file_path[0])
+            data = load_mvnx(cls.file_path_mvnx[0])
             frame_count = data.frame_count
             temp = []
 
